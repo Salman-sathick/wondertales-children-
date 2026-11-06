@@ -1,0 +1,6 @@
+{
+  "name": "WonderTales: Read-Aloud Illustrated Kids Storybooks",
+  "description": "An enchanting interactive storybook reader for kids with expressive Gemini 3.8 Flash read-aloud storytelling and magical high-resolution Gemini 3 Pro page illustrations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
