@@ -342,7 +342,7 @@ Return ONLY valid JSON with this schema:
         pageNumber: currentPageNumber + 1,
         text: parsed.text || 'The adventure continued into the sparkling sunlight...',
         illustrationPrompt: parsed.illustrationPrompt || `Illustration of ${hero} following ${chosenChoiceText}`,
-        illustrationUrl: '',
+        illustrationUrl: '/images/story_custom_adventure.jpg',
         illustrationResolution: imageSize,
         artStyle: artStyle,
         choices: parsed.choices || [],
@@ -443,7 +443,7 @@ Return ONLY valid JSON with this schema:
       pageNumber: idx + 1,
       text: p.text || 'Once upon a time...',
       illustrationPrompt: p.illustrationPrompt || `Illustration of ${actualHero} in ${setting}`,
-      illustrationUrl: '',
+      illustrationUrl: '/images/story_custom_adventure.jpg',
       illustrationResolution: imageSize,
       artStyle: artStyle,
       choices: p.choices || [],
@@ -458,7 +458,7 @@ Return ONLY valid JSON with this schema:
       readingLevel,
       tag: parsed.tag || 'New Adventure',
       summary: parsed.summary || `A wonderful journey with ${actualHero} in ${setting}.`,
-      coverImage: '',
+      coverImage: '/images/story_custom_adventure.jpg',
       themeColor: parsed.themeColor || 'from-indigo-400/20 to-pink-400/20',
       pages: formattedPages,
       createdAt: new Date().toISOString().split('T')[0],
@@ -475,6 +475,14 @@ Return ONLY valid JSON with this schema:
     });
   }
 });
+
+// Statically serve images across dev and production
+const publicImagesPath = path.resolve(__dirname, 'public/images');
+const srcImagesPath = path.resolve(__dirname, 'src/assets/images');
+app.use('/images', express.static(publicImagesPath));
+app.use('/public/images', express.static(publicImagesPath));
+app.use('/src/assets/images', express.static(publicImagesPath));
+app.use('/src/assets/images', express.static(srcImagesPath));
 
 // Setup dev server with Vite middlewares or production static files
 async function startServer() {

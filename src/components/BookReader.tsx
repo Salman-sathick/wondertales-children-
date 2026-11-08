@@ -39,6 +39,7 @@ import { IllustrationStudioModal } from './IllustrationStudioModal';
 import { DrawingStudioModal } from './DrawingStudioModal';
 import { WordDictionaryModal } from './WordDictionaryModal';
 import { ImageZoomModal } from './ImageZoomModal';
+import { StoryImage, StoryIllustrationType } from './StoryImage';
 
 interface BookReaderProps {
   story: Story;
@@ -65,6 +66,8 @@ interface BookReaderProps {
   ) => void;
   activeCharacter: CharacterProfile;
   soundEnabled: boolean;
+  isToddlerMode?: boolean;
+  onToggleToddlerMode?: () => void;
 }
 
 type VoiceOption = { id: string; name: string; persona: string };
@@ -85,6 +88,8 @@ export const BookReader: React.FC<BookReaderProps> = ({
   onAddBranchingPage,
   activeCharacter = DEFAULT_CHARACTER,
   soundEnabled,
+  isToddlerMode = true,
+  onToggleToddlerMode,
 }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -93,7 +98,6 @@ export const BookReader: React.FC<BookReaderProps> = ({
   const [selectedVoice, setSelectedVoice] = useState('Kore');
   const [readingSpeed, setReadingSpeed] = useState<number>(1.0);
   const [autoAdvance, setAutoAdvance] = useState(false);
-  const [isAudioSettingsOpen, setIsAudioSettingsOpen] = useState(false);
 
   // Modals state
   const [isStudioOpen, setIsStudioOpen] = useState(false);
@@ -111,6 +115,12 @@ export const BookReader: React.FC<BookReaderProps> = ({
   // Display Mode: 'both' | 'child' | 'ai'
   const [displayMode, setDisplayMode] = useState<'both' | 'child' | 'ai'>('both');
 
+  // Developer mode flag: Only true if explicitly requested via ?dev=1 or ?developer=true
+  const isDeveloperMode =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).get('dev') === '1' ||
+      new URLSearchParams(window.location.search).get('developer') === 'true');
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechSynthUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const pageTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,10 +128,13 @@ export const BookReader: React.FC<BookReaderProps> = ({
   const currentPage: StoryPage = story.pages[currentPageIndex] || story.pages[0];
   const totalPages = story.pages.length;
 
+  // Base narrative text according to mode
+  const baseNarrative = isToddlerMode && currentPage.simpleText ? currentPage.simpleText : currentPage.text;
+
   // Build full narrative to read aloud, appending drawing acknowledgment if present
   const fullPageText = currentPage.drawingAcknowledgment
-    ? `${currentPage.text} ${currentPage.drawingAcknowledgment}`
-    : currentPage.text;
+    ? `${baseNarrative} ${currentPage.drawingAcknowledgment}`
+    : baseNarrative;
 
   const sentences = splitIntoSentences(fullPageText);
 
@@ -431,7 +444,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
           pageNumber: nextPageNum,
           text: `Following the choice to ${choice.text.toLowerCase()}, ${activeCharacter.name} discovered ${choice.consequenceSummary}. The sky sparkled with wonder!`,
           illustrationPrompt: `${activeCharacter.name} (${activeCharacter.species}) enjoying ${choice.illustrationHint}, wearing ${activeCharacter.clothing}`,
-          illustrationUrl: '/src/assets/images/hero_storybook_magic_1793981897302.jpg',
+          illustrationUrl: '/images/story_custom_adventure.jpg',
           illustrationResolution: currentPage.illustrationResolution || '1K',
           artStyle: currentPage.artStyle,
           displayMode: 'both',
@@ -522,6 +535,21 @@ export const BookReader: React.FC<BookReaderProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
+          {/* Toddler Mode Switcher */}
+          {onToggleToddlerMode && (
+            <button
+              onClick={onToggleToddlerMode}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                isToddlerMode
+                  ? 'bg-amber-100 text-amber-950 border-amber-300 hover:bg-amber-200'
+                  : 'bg-stone-100 text-stone-700 border-stone-200 hover:bg-stone-200'
+              }`}
+              title="Toggle between 2-Year-Old Mode and Big Kid Mode"
+            >
+              {isToddlerMode ? '👶 2yo Mode' : '🌟 Big Kid Mode'}
+            </button>
+          )}
+
           {/* Active Hero Pill indicator */}
           <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-amber-900 bg-amber-100/70 px-3 py-1.5 rounded-xl border border-amber-300/60">
             <Heart className="w-3.5 h-3.5 text-amber-700" />
@@ -546,19 +574,20 @@ export const BookReader: React.FC<BookReaderProps> = ({
             {hasChildDrawing && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />}
           </button>
 
-          {/* Generate Illustration Trigger Button */}
-          <button
-            onClick={() => setIsStudioOpen(true)}
-            className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 text-xs sm:text-sm font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5 active:scale-95"
-            title="Generate new illustration for this page with Gemini 3 Pro"
-          >
-            <Wand2 className="w-3.5 h-3.5 text-amber-700" />
-            <span className="hidden sm:inline">Paint with AI</span>
-            <span className="sm:hidden">Paint</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-amber-200/70 rounded text-amber-900 font-bold">
-              {currentPage.illustrationResolution || '1K'}
-            </span>
-          </button>
+          {/* Developer-Only Illustration Studio Button */}
+          {isDeveloperMode && (
+            <button
+              onClick={() => setIsStudioOpen(true)}
+              className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 text-xs sm:text-sm font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              title="Developer Mode: Edit illustration prompts"
+            >
+              <Wand2 className="w-3.5 h-3.5 text-amber-700" />
+              <span className="hidden sm:inline">Developer AI Studio</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 bg-amber-200/70 rounded text-amber-900 font-bold">
+                {currentPage.illustrationResolution || '1K'}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -634,24 +663,27 @@ export const BookReader: React.FC<BookReaderProps> = ({
                   </button>
                   <button
                     onClick={() => setIsDrawingOpen(true)}
-                    className="px-2.5 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg shadow-xs"
+                    className="px-2.5 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer"
                   >
-                    Edit
+                    Redraw
                   </button>
                 </div>
               </div>
 
               {/* Gemini 3 Pro AI Illustration Panel */}
               <div className="relative rounded-2xl overflow-hidden shadow-lg border-3 border-amber-300 bg-stone-100 group">
-                <img
+                <StoryImage
                   src={currentPage.illustrationUrl}
                   alt={`AI illustration for page ${currentPageIndex + 1}`}
-                  referrerPolicy="no-referrer"
+                  type={(currentPage.illustrationType || story.illustrationType as StoryIllustrationType) || 'dragon'}
+                  interactiveSparkles={true}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute top-2 left-2 px-2.5 py-0.5 bg-stone-900/80 backdrop-blur-xs text-amber-300 text-[11px] font-mono font-bold rounded-md shadow-xs">
-                  ✨ Gemini 3 Pro · {currentPage.illustrationResolution}
-                </div>
+                {isDeveloperMode && (
+                  <div className="absolute top-2 left-2 px-2.5 py-0.5 bg-stone-900/80 backdrop-blur-xs text-amber-300 text-[11px] font-mono font-bold rounded-md shadow-xs">
+                    ✨ Developer · {currentPage.illustrationResolution}
+                  </div>
+                )}
                 <div className="absolute bottom-2 right-2 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => {
@@ -659,17 +691,19 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       setZoomImageTitle(`${story.title} · Page ${currentPage.pageNumber}`);
                       setIsZoomOpen(true);
                     }}
-                    className="p-2 bg-stone-900/80 text-white rounded-lg hover:bg-stone-900"
-                    title="Enlarge AI illustration"
+                    className="p-2 bg-stone-900/80 text-white rounded-lg hover:bg-stone-900 cursor-pointer"
+                    title="Enlarge illustration"
                   >
                     <ZoomIn className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => setIsStudioOpen(true)}
-                    className="px-2.5 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg shadow-xs"
-                  >
-                    Paint
-                  </button>
+                  {isDeveloperMode && (
+                    <button
+                      onClick={() => setIsStudioOpen(true)}
+                      className="px-2.5 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer"
+                    >
+                      Paint
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -699,50 +733,34 @@ export const BookReader: React.FC<BookReaderProps> = ({
                 </button>
                 <button
                   onClick={() => setIsDrawingOpen(true)}
-                  className="px-3.5 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl shadow-md"
+                  className="px-3.5 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  Edit Drawing
+                  Redraw Art
                 </button>
               </div>
             </div>
           ) : (
             /* AI ILLUSTRATION STANDARD VIEW */
             <div className="relative aspect-4/3 w-full rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-stone-100 group">
-              {currentPage.illustrationUrl ? (
-                <img
-                  src={currentPage.illustrationUrl}
-                  alt={`Storybook illustration for page ${currentPageIndex + 1}`}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-amber-100 via-rose-100 to-indigo-100 flex flex-col items-center justify-center p-8 text-center">
-                  <Sparkles className="w-12 h-12 text-amber-500 mb-3 animate-spin" style={{ animationDuration: '8s' }} />
-                  <h4 className="font-serif font-bold text-stone-800 text-xl mb-1">
-                    Ready to Illustrate
-                  </h4>
-                  <p className="text-xs text-stone-600 max-w-sm mb-4">
-                    "{currentPage.illustrationPrompt}"
-                  </p>
-                  <button
-                    onClick={() => setIsStudioOpen(true)}
-                    className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-2"
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                    <span>Generate with Gemini 3 Pro ({currentPage.illustrationResolution})</span>
-                  </button>
+              <StoryImage
+                src={currentPage.illustrationUrl}
+                alt={`Storybook illustration for page ${currentPageIndex + 1}`}
+                type={(currentPage.illustrationType || story.illustrationType as StoryIllustrationType) || 'dragon'}
+                interactiveSparkles={true}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102"
+              />
+
+              {/* Top developer badge */}
+              {isDeveloperMode && (
+                <div className="absolute top-3 left-3 flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-stone-950/75 backdrop-blur-md text-amber-300 text-xs font-mono font-bold rounded-lg border border-amber-400/30 shadow-xs">
+                    Dev · {currentPage.illustrationResolution || '1K'}
+                  </span>
+                  <span className="hidden sm:inline-block px-2.5 py-1 bg-stone-900/60 backdrop-blur-md text-stone-200 text-xs font-medium rounded-lg">
+                    {currentPage.artStyle || 'Fairytale Gouache'}
+                  </span>
                 </div>
               )}
-
-              {/* Top resolution affordance badge */}
-              <div className="absolute top-3 left-3 flex items-center gap-2">
-                <span className="px-2.5 py-1 bg-stone-950/75 backdrop-blur-md text-amber-300 text-xs font-mono font-bold rounded-lg border border-amber-400/30 shadow-xs">
-                  Gemini 3 Pro · {currentPage.illustrationResolution || '1K'}
-                </span>
-                <span className="hidden sm:inline-block px-2.5 py-1 bg-stone-900/60 backdrop-blur-md text-stone-200 text-xs font-medium rounded-lg">
-                  {currentPage.artStyle || 'Fairytale Gouache'}
-                </span>
-              </div>
 
               {/* Bottom Floating Controls: Zoom & Actions */}
               <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
@@ -753,9 +771,9 @@ export const BookReader: React.FC<BookReaderProps> = ({
                       setZoomImageTitle(`${story.title} · Page ${currentPage.pageNumber}`);
                       setIsZoomOpen(true);
                     }}
-                    className="p-2.5 bg-stone-900/80 hover:bg-stone-950 backdrop-blur-md text-white rounded-xl shadow-md transition-all active:scale-95"
+                    className="p-2.5 bg-stone-900/80 hover:bg-stone-950 backdrop-blur-md text-white rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
                     aria-label="Enlarge full-screen illustration"
-                    title="View full-resolution illustration"
+                    title="View full picture"
                   >
                     <ZoomIn className="w-4 h-4" />
                   </button>
@@ -763,21 +781,23 @@ export const BookReader: React.FC<BookReaderProps> = ({
 
                 <button
                   onClick={() => setIsDrawingOpen(true)}
-                  className="px-3.5 py-2 bg-rose-500/90 hover:bg-rose-600 backdrop-blur-md text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+                  className="px-3.5 py-2 bg-rose-500/90 hover:bg-rose-600 backdrop-blur-md text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                   title="Draw your own picture for this page"
                 >
                   <Palette className="w-3.5 h-3.5" />
                   <span>Draw</span>
                 </button>
 
-                <button
-                  onClick={() => setIsStudioOpen(true)}
-                  className="px-3.5 py-2 bg-amber-500/90 hover:bg-amber-600 backdrop-blur-md text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95"
-                  title="Change resolution (1K, 2K, 4K) or art style"
-                >
-                  <Wand2 className="w-3.5 h-3.5" />
-                  <span>Re-illustrate</span>
-                </button>
+                {isDeveloperMode && (
+                  <button
+                    onClick={() => setIsStudioOpen(true)}
+                    className="px-3.5 py-2 bg-amber-500/90 hover:bg-amber-600 backdrop-blur-md text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                    title="Developer Mode: Edit illustration"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    <span>Re-illustrate</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -794,112 +814,293 @@ export const BookReader: React.FC<BookReaderProps> = ({
               <span>Chapter {currentPageIndex + 1}</span>
             </div>
 
-            {/* Main story text */}
-            <div className="space-y-4 my-2">
-              {sentences.map((sentence, idx) => {
-                const isSentenceActive = isPlaying && activeSentenceIndex === idx;
-                const isAckSentence =
-                  currentPage.drawingAcknowledgment &&
-                  sentence.includes(currentPage.drawingAcknowledgment.slice(0, 15));
+            {/* Child-Friendly Read Aloud Bar (In-Flow, Never Overlays Any Text or Choices) */}
+            <div className="p-3 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/70 rounded-2xl border border-amber-200/90 flex flex-wrap items-center justify-between gap-2.5 mb-4 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleNarration}
+                  disabled={isLoadingAudio}
+                  className={`px-4 py-2 rounded-xl flex items-center gap-2 text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer ${
+                    isPlaying
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white ring-2 ring-amber-300 animate-pulse'
+                      : 'bg-amber-400 hover:bg-amber-500 text-amber-950'
+                  }`}
+                  aria-label={isPlaying ? 'Pause reading aloud' : 'Read aloud with expressive voice'}
+                >
+                  {isLoadingAudio ? (
+                    <div className="w-4 h-4 border-2 border-amber-950 border-t-transparent rounded-full animate-spin" />
+                  ) : isPlaying ? (
+                    <Pause className="w-4 h-4 fill-white" />
+                  ) : (
+                    <Play className="w-4 h-4 fill-amber-950 ml-0.5" />
+                  )}
+                  <span>{isPlaying ? 'Pause' : 'Read to Me'}</span>
+                </button>
 
-                return (
-                  <p
-                    key={idx}
-                    className={`font-serif text-xl sm:text-2xl lg:text-[25px] leading-relaxed transition-all duration-300 rounded-xl p-1.5 ${
-                      isSentenceActive
-                        ? 'bg-amber-200/80 text-amber-950 font-bold shadow-xs scale-101'
-                        : isAckSentence
-                        ? 'bg-rose-50/80 text-rose-950 border border-rose-200/60 font-medium'
-                        : 'text-stone-800 font-normal hover:text-stone-950'
-                    }`}
-                  >
-                    {sentence}
-                  </p>
-                );
-              })}
+                <button
+                  onClick={() => {
+                    stopNarration();
+                    playGeminiTTS();
+                  }}
+                  className="p-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-amber-200/50 transition-colors cursor-pointer"
+                  title="Restart reading this page"
+                  aria-label="Restart reading"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Speed & Voice options */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-white/90 rounded-xl p-0.5 border border-amber-200/80 shadow-2xs">
+                  {[0.8, 1.0, 1.2].map((spd) => (
+                    <button
+                      key={spd}
+                      onClick={() => setReadingSpeed(spd)}
+                      className={`px-2 py-0.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                        readingSpeed === spd
+                          ? 'bg-amber-500 text-white shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      {spd}x
+                    </button>
+                  ))}
+                </div>
+
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => {
+                    setSelectedVoice(e.target.value);
+                    if (isPlaying) stopNarration();
+                  }}
+                  className="text-xs bg-white/90 border border-amber-200/80 rounded-xl px-2.5 py-1 text-stone-800 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400 shadow-2xs cursor-pointer"
+                  title="Choose Storyteller Voice"
+                >
+                  {VOICES.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name.replace('Storyteller ', '')}
+                    </option>
+                  ))}
+                </select>
+
+                <label
+                  className="hidden sm:flex items-center gap-1.5 text-[11px] text-stone-600 font-medium ml-1 cursor-pointer"
+                  title="Automatically advance to next page when reading finishes"
+                >
+                  <input
+                    type="checkbox"
+                    checked={autoAdvance}
+                    onChange={(e) => setAutoAdvance(e.target.checked)}
+                    className="rounded border-amber-300 text-amber-500 focus:ring-amber-400"
+                  />
+                  <span>Auto-turn</span>
+                </label>
+              </div>
             </div>
 
-            {/* Drawing Acknowledgment Celebratory Card */}
-            {currentPage.drawingAcknowledgment && (
-              <div className="mt-4 p-3 bg-gradient-to-r from-rose-50 to-amber-50 rounded-2xl border border-rose-200 text-xs text-rose-900 flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-rose-500 shrink-0 animate-bounce" />
-                <div>
-                  <span className="font-bold block">Storyteller Loved Your Drawing!</span>
-                  <span className="italic leading-snug">Woven directly into the tale above.</span>
-                </div>
-              </div>
-            )}
-
-            {/* Interactive Vocabulary Sparks */}
-            {currentPage.vocabularyWords && currentPage.vocabularyWords.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-amber-100">
-                <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Tap to explore magic words:</span>
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {currentPage.vocabularyWords.map((vocab) => (
-                    <button
-                      key={vocab.word}
-                      onClick={() => setActiveVocabularyWord(vocab)}
-                      className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs sm:text-sm font-bold rounded-xl border border-amber-300/80 shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 group"
-                    >
-                      <span className="group-hover:text-amber-800 underline decoration-amber-400 decoration-2 underline-offset-3">
-                        {vocab.word}
-                      </span>
-                      <span className="text-[11px] text-amber-600 font-mono">
-                        {vocab.phonetic ? `/${vocab.phonetic}/` : '✨'}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* INTERACTIVE BRANCHING STORY CHOICES ON EVERY PAGE! */}
-            {currentPage.choices && currentPage.choices.length > 0 && (
-              <div className="mt-8 pt-5 border-t-2 border-dashed border-amber-200/80">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Compass className="w-4 h-4 text-amber-600" />
-                    <span>What should {activeCharacter.name} do next?</span>
-                  </span>
-                  <span className="text-[11px] text-amber-800 font-medium">Pick a path:</span>
-                </div>
-
-                <div className="space-y-2.5">
-                  {currentPage.choices.map((choice, i) => (
-                    <button
-                      key={choice.id || i}
-                      onClick={() => handleSelectChoice(choice)}
-                      disabled={isBranching}
-                      className="w-full p-3.5 rounded-2xl border-2 border-amber-200/80 hover:border-amber-400 bg-amber-50/40 hover:bg-amber-100/60 text-left transition-all shadow-2xs hover:shadow-md flex items-start gap-3 group active:scale-98 disabled:opacity-50"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-amber-400 group-hover:bg-amber-500 text-amber-950 font-bold text-xs flex items-center justify-center shrink-0 transition-colors">
-                        {String.fromCharCode(65 + i)}
-                      </div>
-                      <div className="flex-1">
-                        <span className="font-serif font-bold text-sm sm:text-base text-stone-900 group-hover:text-amber-950 block">
-                          {choice.text}
-                        </span>
-                        <span className="text-xs text-stone-500 group-hover:text-stone-700 block mt-0.5">
-                          {choice.consequenceSummary}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-amber-400 group-hover:text-amber-700 shrink-0 self-center group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  ))}
-                </div>
-
-                {isBranching && (
-                  <div className="mt-3 p-3 bg-amber-100/80 border border-amber-300 rounded-xl flex items-center gap-3 animate-pulse">
-                    <Sparkles className="w-5 h-5 text-amber-700 animate-spin" />
-                    <span className="text-xs font-bold text-amber-950 font-serif">
-                      {branchingStatus || 'Weaving your next adventure page...'}
+            {/* Main story text */}
+            {isToddlerMode ? (
+              <div className="space-y-4 my-3">
+                <div
+                  onClick={() => {
+                    if (!isPlaying) toggleNarration();
+                  }}
+                  className="p-5 sm:p-7 bg-gradient-to-br from-amber-50 to-orange-50/70 rounded-3xl border-2 border-amber-300/80 shadow-xs cursor-pointer hover:border-amber-400 transition-all group"
+                  title="Tap to hear story read aloud"
+                >
+                  <div className="flex items-center justify-between text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">
+                    <span className="flex items-center gap-1.5">
+                      <Volume2 className="w-4 h-4 text-amber-700" />
+                      <span>Tap to Read Aloud:</span>
+                    </span>
+                    <span className="text-[11px] text-amber-700 font-medium group-hover:underline">
+                      {isPlaying ? '🔊 Playing...' : '▶ Tap anywhere'}
                     </span>
                   </div>
+
+                  <p className="font-serif text-2xl sm:text-3xl lg:text-4xl text-stone-900 leading-snug font-extrabold">
+                    {currentPage.simpleText || currentPage.text}
+                  </p>
+                </div>
+
+                {/* Drawing Acknowledgment Celebratory Card */}
+                {currentPage.drawingAcknowledgment && (
+                  <div className="p-3.5 bg-gradient-to-r from-rose-50 to-amber-50 rounded-2xl border border-rose-200 text-xs text-rose-900 flex items-center gap-2.5">
+                    <Sparkles className="w-5 h-5 text-rose-500 shrink-0 animate-bounce" />
+                    <div>
+                      <span className="font-bold block">Storyteller Loved Your Drawing!</span>
+                      <span className="italic leading-snug">{currentPage.drawingAcknowledgment}</span>
+                    </div>
+                  </div>
                 )}
+
+                {/* GIANT 2-YEAR-OLD EMOJI CHOICES */}
+                <div className="mt-6 pt-5 border-t-2 border-dashed border-amber-200">
+                  <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-amber-950 flex items-center gap-2 mb-3">
+                    <span className="text-lg">👉</span>
+                    <span>What should we do next? Tap one!</span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {(currentPage.simpleChoices && currentPage.simpleChoices.length > 0
+                      ? currentPage.simpleChoices
+                      : (currentPage.choices || []).slice(0, 2).map((c, i) => ({
+                          id: c.id,
+                          emoji: i === 0 ? '⭐' : '🎈',
+                          text: c.text.slice(0, 22),
+                        }))
+                    ).map((choice, i) => (
+                      <button
+                        key={choice.id || i}
+                        onClick={() => {
+                          playChime(659.25, 0.3);
+                          const fullChoiceMatch =
+                            currentPage.choices?.find((c) => c.id === choice.id) ||
+                            currentPage.choices?.[i];
+                          if (fullChoiceMatch) {
+                            handleSelectChoice(fullChoiceMatch);
+                          } else {
+                            goToNextPage();
+                          }
+                        }}
+                        disabled={isBranching}
+                        className={`p-5 sm:p-6 rounded-3xl border-3 shadow-md hover:shadow-xl transition-all flex flex-col items-center justify-center text-center gap-2.5 active:scale-95 cursor-pointer disabled:opacity-50 ${
+                          i === 0
+                            ? 'bg-gradient-to-br from-amber-100 via-amber-50 to-amber-200 border-amber-400 text-amber-950 hover:border-amber-500'
+                            : 'bg-gradient-to-br from-rose-100 via-rose-50 to-rose-200 border-rose-400 text-rose-950 hover:border-rose-500'
+                        }`}
+                      >
+                        <span className="text-4xl sm:text-5xl animate-bounce" style={{ animationDuration: '2.5s' }}>
+                          {choice.emoji}
+                        </span>
+                        <span className="font-serif font-extrabold text-base sm:text-lg">
+                          {choice.text}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {isBranching && (
+                    <div className="mt-3 p-3 bg-amber-100/80 border border-amber-300 rounded-xl flex items-center gap-3 animate-pulse">
+                      <Sparkles className="w-5 h-5 text-amber-700 animate-spin" />
+                      <span className="text-xs font-bold text-amber-950 font-serif">
+                        {branchingStatus || 'Weaving your next adventure page...'}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
+            ) : (
+              /* Big Kid Standard View */
+              <>
+                <div className="space-y-4 my-2">
+                  {sentences.map((sentence, idx) => {
+                    const isSentenceActive = isPlaying && activeSentenceIndex === idx;
+                    const isAckSentence =
+                      currentPage.drawingAcknowledgment &&
+                      sentence.includes(currentPage.drawingAcknowledgment.slice(0, 15));
+
+                    return (
+                      <p
+                        key={idx}
+                        className={`font-serif text-xl sm:text-2xl lg:text-[25px] leading-relaxed transition-all duration-300 rounded-xl p-1.5 ${
+                          isSentenceActive
+                            ? 'bg-amber-200/80 text-amber-950 font-bold shadow-xs scale-101'
+                            : isAckSentence
+                            ? 'bg-rose-50/80 text-rose-950 border border-rose-200/60 font-medium'
+                            : 'text-stone-800 font-normal hover:text-stone-950'
+                        }`}
+                      >
+                        {sentence}
+                      </p>
+                    );
+                  })}
+                </div>
+
+                {/* Drawing Acknowledgment Celebratory Card */}
+                {currentPage.drawingAcknowledgment && (
+                  <div className="mt-4 p-3 bg-gradient-to-r from-rose-50 to-amber-50 rounded-2xl border border-rose-200 text-xs text-rose-900 flex items-center gap-2.5">
+                    <Sparkles className="w-5 h-5 text-rose-500 shrink-0 animate-bounce" />
+                    <div>
+                      <span className="font-bold block">Storyteller Loved Your Drawing!</span>
+                      <span className="italic leading-snug">Woven directly into the tale above.</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Interactive Vocabulary Sparks */}
+                {currentPage.vocabularyWords && currentPage.vocabularyWords.length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-amber-100">
+                    <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Tap to explore magic words:</span>
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {currentPage.vocabularyWords.map((vocab) => (
+                        <button
+                          key={vocab.word}
+                          onClick={() => setActiveVocabularyWord(vocab)}
+                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs sm:text-sm font-bold rounded-xl border border-amber-300/80 shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 group cursor-pointer"
+                        >
+                          <span className="group-hover:text-amber-800 underline decoration-amber-400 decoration-2 underline-offset-3">
+                            {vocab.word}
+                          </span>
+                          <span className="text-[11px] text-amber-600 font-mono">
+                            {vocab.phonetic ? `/${vocab.phonetic}/` : '✨'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* INTERACTIVE BRANCHING STORY CHOICES ON EVERY PAGE! */}
+                {currentPage.choices && currentPage.choices.length > 0 && (
+                  <div className="mt-8 pt-5 border-t-2 border-dashed border-amber-200/80">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Compass className="w-4 h-4 text-amber-600" />
+                        <span>What should {activeCharacter.name} do next?</span>
+                      </span>
+                      <span className="text-[11px] text-amber-800 font-medium">Pick a path:</span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {currentPage.choices.map((choice, i) => (
+                        <button
+                          key={choice.id || i}
+                          onClick={() => handleSelectChoice(choice)}
+                          disabled={isBranching}
+                          className="w-full p-3.5 rounded-2xl border-2 border-amber-200/80 hover:border-amber-400 bg-amber-50/40 hover:bg-amber-100/60 text-left transition-all shadow-2xs hover:shadow-md flex items-start gap-3 group active:scale-98 disabled:opacity-50 cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-full bg-amber-400 group-hover:bg-amber-500 text-amber-950 font-bold text-xs flex items-center justify-center shrink-0 transition-colors">
+                            {String.fromCharCode(65 + i)}
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-serif font-bold text-sm sm:text-base text-stone-900 group-hover:text-amber-950 block">
+                              {choice.text}
+                            </span>
+                            <span className="text-xs text-stone-500 group-hover:text-stone-700 block mt-0.5">
+                              {choice.consequenceSummary}
+                            </span>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-amber-400 group-hover:text-amber-700 shrink-0 self-center group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+
+                    {isBranching && (
+                      <div className="mt-3 p-3 bg-amber-100/80 border border-amber-300 rounded-xl flex items-center gap-3 animate-pulse">
+                        <Sparkles className="w-5 h-5 text-amber-700 animate-spin" />
+                        <span className="text-xs font-bold text-amber-950 font-serif">
+                          {branchingStatus || 'Weaving your next adventure page...'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -942,129 +1143,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
         </div>
       </div>
 
-      {/* Floating Interactive Storyteller Audio Deck */}
-      <div className="sticky bottom-4 z-30 bg-stone-900/95 backdrop-blur-md text-white rounded-3xl p-3.5 sm:p-4 shadow-2xl border border-stone-800 max-w-3xl mx-auto w-full transition-all">
-        <div className="flex items-center justify-between gap-3">
-          {/* Left: Play / Pause & Status */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleNarration}
-              disabled={isLoadingAudio}
-              className={`w-13 h-13 rounded-2xl flex items-center justify-center text-stone-950 font-bold shadow-lg transition-all active:scale-95 ${
-                isPlaying
-                  ? 'bg-amber-400 hover:bg-amber-300 ring-4 ring-amber-400/30 animate-pulse'
-                  : 'bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200'
-              }`}
-              aria-label={isPlaying ? 'Pause reading aloud' : 'Read aloud with Gemini 3.8 Flash TTS'}
-            >
-              {isLoadingAudio ? (
-                <div className="w-6 h-6 border-3 border-stone-900 border-t-transparent rounded-full animate-spin" />
-              ) : isPlaying ? (
-                <Pause className="w-6 h-6 fill-stone-950" />
-              ) : (
-                <Play className="w-6 h-6 fill-stone-950 ml-0.5" />
-              )}
-            </button>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif font-bold text-sm sm:text-base text-white">
-                  {isPlaying ? 'Reading Aloud...' : 'Read Aloud'}
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md font-bold">
-                  gemini-3.8-flash-tts
-                </span>
-              </div>
-              <p className="text-xs text-stone-400 hidden sm:block">
-                Voice: <span className="text-amber-300 font-medium">{selectedVoice}</span> · Starring {activeCharacter.name}
-              </p>
-            </div>
-          </div>
-
-          {/* Right: Quick Audio Settings & Speed Controls */}
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center bg-stone-800/80 rounded-xl p-1 border border-stone-700/60">
-              {[0.8, 1.0, 1.2].map((spd) => (
-                <button
-                  key={spd}
-                  onClick={() => setReadingSpeed(spd)}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                    readingSpeed === spd
-                      ? 'bg-amber-400 text-stone-950 shadow-xs'
-                      : 'text-stone-400 hover:text-white'
-                  }`}
-                >
-                  {spd}x
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                stopNarration();
-                playGeminiTTS();
-              }}
-              className="p-2.5 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-xl transition-colors"
-              title="Restart reading this page"
-              aria-label="Restart reading"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => setIsAudioSettingsOpen(!isAudioSettingsOpen)}
-              className={`p-2.5 rounded-xl border transition-colors flex items-center gap-1.5 ${
-                isAudioSettingsOpen
-                  ? 'bg-amber-400 text-stone-950 border-amber-300'
-                  : 'bg-stone-800 hover:bg-stone-700 text-stone-300 border-stone-700'
-              }`}
-              title="Voice & Narration Settings"
-              aria-label="Voice settings"
-            >
-              <Settings2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Audio Settings Panel */}
-        {isAudioSettingsOpen && (
-          <div className="mt-4 pt-4 border-t border-stone-800 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in duration-150">
-            <div>
-              <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-1.5">
-                Storyteller Voice Character
-              </label>
-              <select
-                value={selectedVoice}
-                onChange={(e) => {
-                  setSelectedVoice(e.target.value);
-                  if (isPlaying) {
-                    stopNarration();
-                  }
-                }}
-                className="w-full p-2 bg-stone-800 border border-stone-700 rounded-xl text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
-              >
-                {VOICES.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name} ({v.persona.split('&')[0]})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between sm:justify-end gap-4 pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-stone-300">
-                <input
-                  type="checkbox"
-                  checked={autoAdvance}
-                  onChange={(e) => setAutoAdvance(e.target.checked)}
-                  className="rounded border-stone-700 text-amber-500 focus:ring-amber-400 bg-stone-800"
-                />
-                <span>Turn page when story finishes</span>
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Drawing Studio Modal */}
       <DrawingStudioModal

@@ -151,9 +151,12 @@ export const IllustrationStudioModal: React.FC<IllustrationStudioModalProps> = (
               </span>
               <div className="relative aspect-4/3 rounded-2xl overflow-hidden border border-stone-200 bg-stone-100">
                 <img
-                  src={currentImageUrl}
+                  src={currentImageUrl || '/images/story_custom_adventure.jpg'}
                   alt={`Current Page ${pageNumber} Illustration`}
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = '/images/story_custom_adventure.jpg';
+                  }}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-xs text-white text-[11px] font-mono rounded-md">
@@ -299,23 +302,22 @@ export const IllustrationStudioModal: React.FC<IllustrationStudioModalProps> = (
             </div>
           </div>
 
-          {/* Prompt Editor & Details */}
+          {/* Story Scene (Read-only as intended for users) */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
-              Illustration Scene Prompt
-            </label>
-            <textarea
-              value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
-              rows={2}
-              className="w-full p-3 text-sm rounded-xl border border-stone-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none resize-none font-sans"
-              placeholder="Describe the magical scene for this page..."
-            />
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
+                Storybook Scene
+              </label>
+              <span className="text-[11px] text-stone-400">Page {pageNumber} Narrative Scene</span>
+            </div>
+            <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-stone-700 text-xs sm:text-sm font-serif italic leading-relaxed">
+              "{promptText}"
+            </div>
 
             {/* Quick Detail Chips */}
             <div>
               <span className="text-[11px] font-semibold text-stone-500 block mb-1.5">
-                Add magical details:
+                Add magical effects to this scene:
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {QUICK_DETAIL_CHIPS.map((chip) => (
@@ -323,7 +325,7 @@ export const IllustrationStudioModal: React.FC<IllustrationStudioModalProps> = (
                     key={chip}
                     type="button"
                     onClick={() => addQuickChip(chip)}
-                    className="px-2.5 py-1 text-xs bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 rounded-lg transition-colors border border-stone-200/60"
+                    className="px-2.5 py-1 text-xs bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 rounded-lg transition-colors border border-stone-200/60 cursor-pointer"
                   >
                     {chip}
                   </button>
@@ -333,12 +335,12 @@ export const IllustrationStudioModal: React.FC<IllustrationStudioModalProps> = (
 
             {extraDetails && (
               <div className="flex items-center gap-2 pt-1 text-xs text-amber-900">
-                <span className="font-semibold">Added details:</span>
+                <span className="font-semibold">Selected effects:</span>
                 <span className="italic truncate">{extraDetails}</span>
                 <button
                   type="button"
                   onClick={() => setExtraDetails('')}
-                  className="text-stone-400 hover:text-stone-600 underline text-[11px]"
+                  className="text-stone-400 hover:text-stone-600 underline text-[11px] cursor-pointer"
                 >
                   Clear
                 </button>

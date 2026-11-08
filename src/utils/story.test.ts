@@ -74,3 +74,11 @@ test('DEFAULT_STORIES contains choices on every page for interactive branching',
     }
   }
 });
+
+test('DEFAULT_STORIES includes Ages 8-10 story category', () => {
+  const ages8to10Story = DEFAULT_STORIES.find((s) => s.readingLevel === 'Ages 8-10');
+  assert.equal(Boolean(ages8to10Story), true);
+  assert.equal(ages8to10Story?.title.includes('Clockwork Pegasus'), true);
+  assert.equal(ages8to10Story?.pages.length, 4);
+});
+

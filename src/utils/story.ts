@@ -4,7 +4,7 @@
  */
 
 export type ImageSize = '1K' | '2K' | '4K';
-export type ReadingLevel = 'Ages 3-5' | 'Ages 6-8' | 'Ages 9-12';
+export type ReadingLevel = 'Ages 3-5' | 'Ages 6-8' | 'Ages 8-10' | 'Ages 9-12';
 export type ArtStyle = 
   | 'Whimsical Watercolor'
   | 'Classic Gouache Storybook'
@@ -44,12 +44,20 @@ export interface StoryChoice {
   illustrationHint: string;
 }
 
+export interface SimpleChoice {
+  id: string;
+  emoji: string;
+  text: string;
+}
+
 export interface StoryPage {
   pageNumber: number;
   text: string;
+  simpleText?: string; // 1 simple, adorable sentence for a 2-year-old toddler
   illustrationPrompt: string;
   illustrationUrl: string;
   illustrationResolution: ImageSize;
+  illustrationType?: 'dragon' | 'bear' | 'turtle' | 'pegasus' | 'hero' | 'puppy' | 'bunny' | 'dino';
   artStyle: ArtStyle;
   audioUrl?: string;
   vocabularyWords: VocabularyWord[];
@@ -57,17 +65,21 @@ export interface StoryPage {
   displayMode?: 'both' | 'child' | 'ai';
   drawingAcknowledgment?: string;
   choices?: StoryChoice[];
+  simpleChoices?: SimpleChoice[]; // 2 giant simple emoji buttons for toddlers
   chosenChoiceId?: string;
 }
 
 export interface Story {
   id: string;
   title: string;
+  toddlerTitle?: string;
   author: string;
   readingLevel: ReadingLevel;
   tag: string;
   summary: string;
+  toddlerSummary?: string;
   coverImage: string;
+  illustrationType?: 'dragon' | 'bear' | 'turtle' | 'pegasus' | 'hero' | 'puppy' | 'bunny' | 'dino';
   themeColor: string;
   pages: StoryPage[];
   createdAt: string;
@@ -140,9 +152,11 @@ export const CHARACTER_PRESETS: CharacterProfile[] = [
  */
 export function splitIntoSentences(text: string): string[] {
   if (!text || text.trim().length === 0) return [];
-  const matches = text.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g);
+  const matches = text.match(/[^.!?]+[.!?]+["'”’]*(?:\s+|$)|[^.!?]+$/g);
   if (!matches) return [text.trim()];
-  return matches.map((s) => s.trim()).filter(Boolean);
+  return matches
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && s !== '"' && s !== '”' && s !== "'");
 }
 
 /**
@@ -254,19 +268,27 @@ export const DEFAULT_STORIES: Story[] = [
   {
     id: 'dragon-stargazing',
     title: 'Pip and the Lost Stardust',
+    toddlerTitle: '🐲 Pip the Baby Dragon',
     author: 'WonderTales Studio',
     readingLevel: 'Ages 3-5',
     tag: 'Bedtime & Space',
-    summary: 'A ruby red dragon with brass telescope goggles sets out to return a fallen star to the Great Celestial Moon.',
-    coverImage: '/src/assets/images/story_dragon_stargazing_1793981895501.jpg',
+    summary: 'A cute ruby red dragon with brass telescope goggles sets out to return a fallen star to the Great Celestial Moon.',
+    toddlerSummary: 'Pip plays with a cute little star!',
+    illustrationType: 'dragon',
+    coverImage: '/images/story_dragon_pip.jpg',
     themeColor: 'from-amber-500/20 to-rose-500/20',
     createdAt: '2026-03-01',
     pages: [
       {
         pageNumber: 1,
         text: 'High above the Whispering Mountain, where the clouds felt like fluffy whipped cream, lived a tiny ruby dragon named Pip. Unlike the big dragons who practiced roaring, Pip loved polishing his oversized brass telescope goggles to watch the twinkle of the night sky.',
+        simpleText: 'Hello Pip! Pip loves the big smiling moon! 🌙',
+        simpleChoices: [
+          { id: 'choice-toddler-star', emoji: '⭐', text: 'Touch the Star' },
+          { id: 'choice-toddler-moon', emoji: '🌙', text: 'Fly to Moon' },
+        ],
         illustrationPrompt: 'Pip the little ruby dragon sitting atop a mountain peak, peering eagerly through brass telescope goggles up into a sky swirling with friendly constellation shapes and glowing stardust.',
-        illustrationUrl: '/src/assets/images/story_dragon_stargazing_1793981895501.jpg',
+        illustrationUrl: '/images/story_dragon_pip.jpg',
         illustrationResolution: '2K',
         artStyle: 'Classic Gouache Storybook',
         displayMode: 'both',
@@ -308,8 +330,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 2,
         text: 'Suddenly, a golden ping bounced across the moonlit meadow! A baby shooting star had tripped on a comet tail and tumbled down into a bush of sweet blueberries. The tiny star let out a soft sneeze: "Achoo! Where did my constellation go?"',
+        simpleText: 'Look! A tiny baby star fell in the berries! "Achoo!" ⭐',
+        simpleChoices: [
+          { id: 'choice-toddler-hug', emoji: '🤗', text: 'Give a Hug' },
+          { id: 'choice-toddler-berry', emoji: '🍓', text: 'Eat a Berry' },
+        ],
         illustrationPrompt: 'A tiny glowing star character with big friendly eyes sitting in a blueberry bush, covered in glowing blueberry jam, looking up at a curious little dragon.',
-        illustrationUrl: '/src/assets/images/story_dragon_stargazing_1793981895501.jpg',
+        illustrationUrl: '/images/story_dragon_pip.jpg',
         illustrationResolution: '2K',
         artStyle: 'Classic Gouache Storybook',
         displayMode: 'both',
@@ -345,8 +372,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 3,
         text: 'Pip gently cradled the little star in his warm, scale-covered paws. "Don\'t worry, little spark," Pip whispered. "I know every constellation path by heart. We will climb the crescent moon ladder together!" Pip unfurled his ruby wings and soared upward.',
+        simpleText: 'Pip cuddles the little star! They zoom up into the sky! 🚀',
+        simpleChoices: [
+          { id: 'choice-toddler-loop', emoji: '🌈', text: 'Rainbow Zoom' },
+          { id: 'choice-toddler-star', emoji: '⭐', text: 'Twinkle High' },
+        ],
         illustrationPrompt: 'Pip the dragon flying through purple twilight clouds, holding the softly glowing star gently like a warm lantern, climbing toward a crescent moon.',
-        illustrationUrl: '/src/assets/images/story_dragon_stargazing_1793981895501.jpg',
+        illustrationUrl: '/images/story_dragon_pip.jpg',
         illustrationResolution: '2K',
         artStyle: 'Classic Gouache Storybook',
         displayMode: 'both',
@@ -382,8 +414,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 4,
         text: 'With a gentle leap, the star bounced back into the Great Dipper constellation, clicking into place like a luminous puzzle piece! The entire sky lit up with warm golden sparkles, raining down sweet bedtime dreams on all the sleeping creatures below.',
+        simpleText: 'The little star is safe in the sky! Goodnight Pip! 💤',
+        simpleChoices: [
+          { id: 'choice-toddler-kiss', emoji: '💖', text: 'Blow a Kiss' },
+          { id: 'choice-toddler-sleep', emoji: '🌙', text: 'Sweet Dreams' },
+        ],
         illustrationPrompt: 'The whole night sky glittering with golden light, the Little Dipper shining brightly as Pip waves from a fluffy cloud with a proud smile.',
-        illustrationUrl: '/src/assets/images/hero_storybook_magic_1793981897302.jpg',
+        illustrationUrl: '/images/story_dragon_pip.jpg',
         illustrationResolution: '2K',
         artStyle: 'Classic Gouache Storybook',
         displayMode: 'both',
@@ -415,19 +452,27 @@ export const DEFAULT_STORIES: Story[] = [
   {
     id: 'bear-cloud-bakery',
     title: 'Barnaby Bear’s Cloud Bakery',
+    toddlerTitle: '🐻 Barnaby the Baker Bear',
     author: 'WonderTales Studio',
     readingLevel: 'Ages 3-5',
     tag: 'Playful & Cooking',
     summary: 'Barnaby the fluffy baker bear bakes cinnamon starlight muffins that float through the morning breeze.',
-    coverImage: '/src/assets/images/story_bear_cloud_bakery_1793981896365.jpg',
+    toddlerSummary: 'Barnaby bakes yummy sweet cupcakes!',
+    illustrationType: 'bear',
+    coverImage: '/images/story_bear_barnaby.jpg',
     themeColor: 'from-orange-400/20 to-yellow-400/20',
     createdAt: '2026-03-02',
     pages: [
       {
         pageNumber: 1,
         text: 'Every morning before the rooster even cleared his throat, Barnaby Bear climbed the spiraling rainbow ladder to his sky-high bakery. His oven was carved right out of a puffy cumulus cloud, and it smelled of vanilla beans and warm honey.',
+        simpleText: 'Barnaby Bear puts on his puffy white chef hat! 🐻',
+        simpleChoices: [
+          { id: 'choice-toddler-hat', emoji: '👨‍🍳', text: 'Chef Hat' },
+          { id: 'choice-toddler-spoon', emoji: '🥄', text: 'Mix Mix' },
+        ],
         illustrationPrompt: 'Barnaby Bear in a baker hat mixing pancake batter inside a cloud kitchen floating above emerald green hills, morning sunlight streaming in.',
-        illustrationUrl: '/src/assets/images/story_bear_cloud_bakery_1793981896365.jpg',
+        illustrationUrl: '/images/story_bear_barnaby.jpg',
         illustrationResolution: '2K',
         artStyle: 'Whimsical Watercolor',
         displayMode: 'both',
@@ -457,8 +502,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 2,
         text: 'Today was the Grand Sky Picnic! Barnaby needed special ingredients: two scoops of sunrise pink sugar, a pinch of cinnamon breeze, and three sparkling starlight sprinkles collected from morning dew.',
+        simpleText: 'Stir, stir, stir! The sweet dough smells so yummy! 🧁',
+        simpleChoices: [
+          { id: 'choice-toddler-sprinkles', emoji: '✨', text: 'Add Sparkles' },
+          { id: 'choice-toddler-honey', emoji: '🍯', text: 'Pour Honey' },
+        ],
         illustrationPrompt: 'Barnaby Bear delicately sprinkling golden sparkling dust over trays of hot cloud muffins with a giant wooden spoon.',
-        illustrationUrl: '/src/assets/images/story_bear_cloud_bakery_1793981896365.jpg',
+        illustrationUrl: '/images/story_bear_barnaby.jpg',
         illustrationResolution: '2K',
         artStyle: 'Whimsical Watercolor',
         displayMode: 'both',
@@ -488,8 +538,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 3,
         text: 'Ding! The cloud oven chimed. Out came a dozen star muffins! But wait—these muffins were so light, they started floating right off the baking sheet like tiny delicious hot-air balloons!',
+        simpleText: 'Pop! The sweet cupcakes float up like balloons! 🎈',
+        simpleChoices: [
+          { id: 'choice-toddler-catch', emoji: '🧁', text: 'Catch Muffin' },
+          { id: 'choice-toddler-sing', emoji: '🎵', text: 'Sing a Song' },
+        ],
         illustrationPrompt: 'Golden star muffins floating upward into pastel clouds as Barnaby Bear hops happily trying to catch them with an apron.',
-        illustrationUrl: '/src/assets/images/story_bear_cloud_bakery_1793981896365.jpg',
+        illustrationUrl: '/images/story_bear_barnaby.jpg',
         illustrationResolution: '2K',
         artStyle: 'Whimsical Watercolor',
         displayMode: 'both',
@@ -519,8 +574,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 4,
         text: 'Luckily, the woodland birds swooped by and helped catch the muffins, landing gently at the picnic table. Everyone took a bite: "Crisp like sunshine, soft like a cuddle!" Barnaby smiled and took a big bear nap.',
+        simpleText: 'Yum yum in my tum! Goodnight Barnaby Bear! 💤',
+        simpleChoices: [
+          { id: 'choice-toddler-yum', emoji: '😋', text: 'Yummy!' },
+          { id: 'choice-toddler-nap', emoji: '🧸', text: 'Bear Nap' },
+        ],
         illustrationPrompt: 'All the woodland creatures—bunnies, deer, foxes, and birds—eating cloud muffins under a shady tree with Barnaby sleeping peacefully against a cloud.',
-        illustrationUrl: '/src/assets/images/hero_storybook_magic_1793981897302.jpg',
+        illustrationUrl: '/images/story_bear_barnaby.jpg',
         illustrationResolution: '2K',
         artStyle: 'Whimsical Watercolor',
         displayMode: 'both',
@@ -546,19 +606,27 @@ export const DEFAULT_STORIES: Story[] = [
   {
     id: 'coral-kingdom',
     title: 'Marina and the Whispering Reef',
+    toddlerTitle: '🐢 Marina the Baby Turtle',
     author: 'WonderTales Studio',
     readingLevel: 'Ages 6-8',
     tag: 'Ocean & Mystery',
-    summary: 'A brave sea turtle named Marina dives down into the glowing trench to restore the coral orchestra’s lost melody.',
-    coverImage: '/src/assets/images/story_coral_kingdom_1793981896597.jpg',
+    summary: 'A cute green sea turtle named Marina dives into the warm turquoise reef to restore the coral orchestra’s sweet song.',
+    toddlerSummary: 'Marina swims and splashes in the blue sea!',
+    illustrationType: 'turtle',
+    coverImage: '/images/story_turtle_marina.jpg',
     themeColor: 'from-cyan-500/20 to-teal-500/20',
     createdAt: '2026-03-03',
     pages: [
       {
         pageNumber: 1,
         text: 'Beneath the turquoise waves of Coral Bay, Marina the green sea turtle loved listening to the songs of the deep. But this afternoon, the coral polyps were silent. The musical anemones were not humming their customary ocean lullaby.',
+        simpleText: 'Splash! Little Marina swims in the warm blue sea! 🐢',
+        simpleChoices: [
+          { id: 'choice-toddler-splash', emoji: '🌊', text: 'Big Splash' },
+          { id: 'choice-toddler-wave', emoji: '👋', text: 'Wave Hello' },
+        ],
         illustrationPrompt: 'Marina the sea turtle swimming through glowing violet and emerald coral formations, looking quizzically at quiet sea flowers.',
-        illustrationUrl: '/src/assets/images/story_coral_kingdom_1793981896597.jpg',
+        illustrationUrl: '/images/story_turtle_marina.jpg',
         illustrationResolution: '2K',
         artStyle: 'Dreamy Soft Pastels',
         displayMode: 'both',
@@ -588,8 +656,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 2,
         text: 'A shy hermit crab tapped Marina\'s shell with a silver seashell. "The Great Conch Shell at the center of the reef lost its tuning fork when a playful dolphin pod danced through," the crab explained.',
+        simpleText: 'Look! Shiny bubbles go pop, pop, pop! 🫧',
+        simpleChoices: [
+          { id: 'choice-toddler-bubbles', emoji: '🫧', text: 'Pop Bubbles' },
+          { id: 'choice-toddler-starfish', emoji: '⭐', text: 'Say Hi Starfish' },
+        ],
         illustrationPrompt: 'A tiny hermit crab holding a shiny seashell speaking to the patient sea turtle near a glowing underwater archway.',
-        illustrationUrl: '/src/assets/images/story_coral_kingdom_1793981896597.jpg',
+        illustrationUrl: '/images/story_turtle_marina.jpg',
         illustrationResolution: '2K',
         artStyle: 'Dreamy Soft Pastels',
         displayMode: 'both',
@@ -619,8 +692,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 3,
         text: 'Marina glided into the secret grotto. There, resting between two giant sea sponges, was the golden pearl tuning fork. With gentle flippers, Marina tapped it against the reef stone: *TIIING!*',
+        simpleText: 'Wiggle wiggle! Marina dances with the cute fishies! 🐠',
+        simpleChoices: [
+          { id: 'choice-toddler-dance', emoji: '💃', text: 'Wiggle Dance' },
+          { id: 'choice-toddler-coral', emoji: '🪸', text: 'Swim Through' },
+        ],
         illustrationPrompt: 'Marina gently striking a golden tuning fork in a shimmering underwater cave, causing ripples of sparkling musical notes to swirl in the water.',
-        illustrationUrl: '/src/assets/images/story_coral_kingdom_1793981896597.jpg',
+        illustrationUrl: '/images/story_turtle_marina.jpg',
         illustrationResolution: '2K',
         artStyle: 'Dreamy Soft Pastels',
         displayMode: 'both',
@@ -644,8 +722,13 @@ export const DEFAULT_STORIES: Story[] = [
       {
         pageNumber: 4,
         text: 'The ocean instantly burst into harmonious song! The starfish tapped their rhythms, the coral lit up in hues of sapphire and gold, and all the baby seahorses danced in circles. The reef had found its magical voice once again.',
+        simpleText: 'Marina rests on the soft warm sand! Sweet dreams! 🌊',
+        simpleChoices: [
+          { id: 'choice-toddler-rest', emoji: '💤', text: 'Sleep Tight' },
+          { id: 'choice-toddler-sing', emoji: '🎵', text: 'Ocean Song' },
+        ],
         illustrationPrompt: 'A vibrant underwater musical festival with schools of glowing fish, dancing seahorses, and Marina swimming happily amidst swirling musical notes.',
-        illustrationUrl: '/src/assets/images/story_coral_kingdom_1793981896597.jpg',
+        illustrationUrl: '/images/story_turtle_marina.jpg',
         illustrationResolution: '2K',
         artStyle: 'Dreamy Soft Pastels',
         displayMode: 'both',
@@ -668,4 +751,175 @@ export const DEFAULT_STORIES: Story[] = [
       },
     ],
   },
+  {
+    id: 'clockwork-pegasus',
+    title: 'The Clockwork Pegasus and the Sky Observatory',
+    toddlerTitle: '🦄 Golden Flying Pony',
+    author: 'WonderTales Studio',
+    readingLevel: 'Ages 8-10',
+    tag: 'Magic & Inventions',
+    summary: 'In a floating cloud city, young inventor Elio restores an antique brass pegasus with crystal wings to rekindle the fading northern starlight.',
+    toddlerSummary: 'A golden pony flies through the starry night sky!',
+    illustrationType: 'pegasus',
+    coverImage: '/images/story_clockwork_pegasus.jpg',
+    themeColor: 'from-amber-600/20 to-sky-600/20',
+    createdAt: '2026-03-04',
+    pages: [
+      {
+        pageNumber: 1,
+        text: 'High above the storm clouds in the floating brass city of Aethelgard, young apprentice Elio worked late inside the Great Sky Observatory. Resting on a velvet workbench was an ancient marvel: a mechanical winged pegasus with gears of polished brass and wings of prismatic light crystal. "Tonight," Elio murmured, tightening a golden gear, "we discover why the northern stars have dimmed."',
+        simpleText: 'Look at the magical golden pony with shiny wings! 🦄✨',
+        simpleChoices: [
+          { id: 'choice-pegasus-wind', emoji: '✨', text: 'Wind the Key' },
+          { id: 'choice-pegasus-pat', emoji: '💖', text: 'Gentle Pat' },
+        ],
+        illustrationPrompt: 'A glowing brass mechanical clockwork pegasus with intricate gear-carved wings perched on an antique starry observatory balcony above fluffy pastel clouds, looking up at constellation star charts, warm golden lighting, gouache style.',
+        illustrationUrl: '/images/story_clockwork_pegasus.jpg',
+        illustrationResolution: '2K',
+        illustrationType: 'pegasus',
+        artStyle: 'Classic Gouache Storybook',
+        displayMode: 'both',
+        choices: [
+          {
+            id: 'choice-pegasus-1-key',
+            text: 'Turn the filigree clockwork key inside the pegasus’s heart',
+            consequenceSummary: 'A gentle humming resonance wakes the crystal wings with cyan luminescence.',
+            illustrationHint: 'Elio inserting a glowing key as the clockwork pegasus eyes open with warm amber light.',
+          },
+          {
+            id: 'choice-pegasus-1-charts',
+            text: 'Consult the brass armillary sphere for celestial navigation',
+            consequenceSummary: 'The brass rings align with the Polaris vortex, revealing an ancient aerial airway.',
+            illustrationHint: 'Elio studying spinning glowing brass constellation rings.',
+          },
+          {
+            id: 'choice-pegasus-1-telescope',
+            text: 'Peer through the giant copper roof telescope at the aurora',
+            consequenceSummary: 'Elio spots a magnificent crystal prism adrift in the cosmic stratosphere.',
+            illustrationHint: 'Elio peering through an enormous ornate brass telescope at purple auroras.',
+          },
+        ],
+        vocabularyWords: [
+          {
+            word: 'Apprentice',
+            phonetic: 'uh-PREN-tis',
+            definition: 'A curious learner who trains alongside a master craftsperson to master an art or science.',
+            childFriendly: 'A student learning amazing skills from a master inventor!',
+          },
+          {
+            word: 'Celestial',
+            phonetic: 'suh-LES-chul',
+            definition: 'Belonging or relating to the deep starry sky and the wondrous outer heavens.',
+            childFriendly: 'Everything magical belonging to the stars and planets!',
+          },
+        ],
+      },
+      {
+        pageNumber: 2,
+        text: 'As the winding key turned, a harmonious chime echoed through the copper domes. The clockwork pegasus flexed its bronze wings and whinnied with a voice like silver bells. It nudged Elio’s shoulder, unfurling its crystal pinions into the crisp stratosphere breeze, ready to take flight.',
+        simpleText: 'Flap, flap, flap! The pretty pony flies into the clouds! ☁️',
+        simpleChoices: [
+          { id: 'choice-pegasus-high', emoji: '🌈', text: 'Fly to Rainbow' },
+          { id: 'choice-pegasus-star', emoji: '⭐', text: 'Touch Star' },
+        ],
+        illustrationPrompt: 'The clockwork brass pegasus standing gracefully on the edge of the open observatory balcony, wings spread wide catching starlight and wind, with young Elio holding the reins.',
+        illustrationUrl: '/images/story_clockwork_pegasus.jpg',
+        illustrationResolution: '2K',
+        illustrationType: 'pegasus',
+        artStyle: 'Classic Gouache Storybook',
+        displayMode: 'both',
+        choices: [
+          {
+            id: 'choice-pegasus-2-vault',
+            text: 'Soar into the glowing heart of the shimmering Aurora Veil',
+            consequenceSummary: 'The pegasus glides through ribboned green and violet lights like a sailing ship.',
+            illustrationHint: 'The clockwork pegasus galloping across a bridge of green and purple northern lights.',
+          },
+          {
+            id: 'choice-pegasus-2-cloud',
+            text: 'Dive beneath the cloud barrier to inspect the brass lighthouse',
+            consequenceSummary: 'The lighthouse beacon needs a spark from the pegasus’s crystal heart.',
+            illustrationHint: 'Flying close to an ornate floating brass lighthouse tower.',
+          },
+        ],
+        vocabularyWords: [
+          {
+            word: 'Pinion',
+            phonetic: 'PIN-yun',
+            definition: 'The outer flight feathers or flight mechanism of an avian or winged creature.',
+            childFriendly: 'The majestic outer flight feathers of a wing!',
+          },
+        ],
+      },
+      {
+        pageNumber: 3,
+        text: 'Up they climbed into the Aurora Veil, where ribbons of emerald and violet fire rippled across the black velvet sky. At the vortex of the aurora floated the Grand Star Dynamo—an antique celestial clock that powered all the night lights, its pendulum caught on a cluster of cosmic ice crystals.',
+        simpleText: 'Twinkle twinkle! The big clock goes tick-tock, tick-tock! ⏰',
+        simpleChoices: [
+          { id: 'choice-pegasus-tick', emoji: '🔔', text: 'Ring Bell' },
+          { id: 'choice-pegasus-glow', emoji: '🌟', text: 'Shine Bright' },
+        ],
+        illustrationPrompt: 'A gigantic floating celestial clockwork dynamo mechanism in deep space surrounded by emerald aurora lights, with the clockwork pegasus approaching.',
+        illustrationUrl: '/images/story_clockwork_pegasus.jpg',
+        illustrationResolution: '2K',
+        illustrationType: 'pegasus',
+        artStyle: 'Classic Gouache Storybook',
+        displayMode: 'both',
+        choices: [
+          {
+            id: 'choice-pegasus-3-heat',
+            text: 'Use the pegasus’s warm bronze breath to melt the cosmic ice',
+            consequenceSummary: 'The steam releases into glittering diamond rain and the pendulum swings freely.',
+            illustrationHint: 'Warm golden light melting the frost from the gigantic celestial pendulum.',
+          },
+          {
+            id: 'choice-pegasus-3-gear',
+            text: 'Carefully slot an extra bronze gear into the dynamo escapement',
+            consequenceSummary: 'The great gears lock into rhythmic perfection with a thundering chime of triumph.',
+            illustrationHint: 'Elio fitting a shining gear into place with precision tools.',
+          },
+        ],
+        vocabularyWords: [
+          {
+            word: 'Dynamo',
+            phonetic: 'DY-nuh-moh',
+            definition: 'A machine or generator that converts mechanical motion into glowing electrical energy.',
+            childFriendly: 'A magical engine that turns spinning motion into dazzling power!',
+          },
+        ],
+      },
+      {
+        pageNumber: 4,
+        text: 'With a mighty *TOCK*, the Great Dynamo roared back to life! Brilliant beams of sapphire, gold, and ruby starlight cascaded across the skies of the world below. Aethelgard cheered from their balconies, and the clockwork pegasus circled the observatory with joyful triumph, a guardian of the endless skies.',
+        simpleText: 'Hooray! The stars shine bright like diamonds! Night night! 🌟',
+        simpleChoices: [
+          { id: 'choice-pegasus-clap', emoji: '👏', text: 'Clap Hands' },
+          { id: 'choice-pegasus-sleep', emoji: '💤', text: 'Sleepy Pony' },
+        ],
+        illustrationPrompt: 'The whole night sky illuminated with glorious aurora colors and radiant stars, with the clockwork pegasus and Elio flying heroically above the glowing city of Aethelgard.',
+        illustrationUrl: '/images/story_clockwork_pegasus.jpg',
+        illustrationResolution: '2K',
+        illustrationType: 'pegasus',
+        artStyle: 'Classic Gouache Storybook',
+        displayMode: 'both',
+        choices: [
+          {
+            id: 'choice-pegasus-4-home',
+            text: 'Touch down gracefully on the observatory roof to record the discovery in the journal',
+            consequenceSummary: 'Elio sketches the star dynamo in gold ink, ready for the next adventure.',
+            illustrationHint: 'Elio writing in a leather journal by candlelight as the pegasus rests beside him.',
+          },
+        ],
+        vocabularyWords: [
+          {
+            word: 'Cascade',
+            phonetic: 'kas-KAYD',
+            definition: 'To fall or flow downward in large, rich amounts like a shimmering waterfall.',
+            childFriendly: 'To flow down like a sparkling waterfall of light!',
+          },
+        ],
+      },
+    ],
+  },
 ];
+
